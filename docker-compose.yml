@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: garage_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: garage
+      POSTGRES_USER: garage
+      POSTGRES_PASSWORD: garage
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  simulator:
+    image: cfontes0estapar/garage-sim:1.0.0
+    container_name: garage_simulator
+    ports:
+      - "3000:3000"
+    extra_hosts:
+      - "localhost:host-gateway"
+
+  garage-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: garage_service
+    depends_on:
+      - postgres
+      - simulator
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/garage
+      SPRING_DATASOURCE_USERNAME: garage
+      SPRING_DATASOURCE_PASSWORD: garage
+      APP_SIMULATOR_BASE_URL: http://simulator:3000
+      JAVA_OPTS: "-Xms256m -Xmx512m"
+    ports:
+      - "3003:3003"
+    restart: unless-stopped
+    volumes:
+      - ~/.m2:/root/.m2
+
+volumes:
+  pgdata:
